@@ -246,7 +246,7 @@ private:
 
     std::vector<std::string> SplitIntoWordsNoStop(const std::string text) const {
         std::vector<std::string> words;
-        for (const std::string& word : SplitIntoWords(static_cast<std::string_view>(text))) {
+        for (const std::string& word : SplitIntoWords(text)) {
             if (!IsValidWord(word)) {
                 throw std::invalid_argument("Word " + word + " is invalid");
             }
