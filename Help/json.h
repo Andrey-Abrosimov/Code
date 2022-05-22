@@ -179,7 +179,7 @@ public:
         bool round = false;
         double latitude = 0.0;
         double longitude = 0.0;
-        std::map<int, std::string> road_distances = {};
+        std::vector<std::pair<int, std::string>> road_distances = {};
         
         void set_type(const std::string& value) {
             type = value;
@@ -209,10 +209,18 @@ public:
         }
         
         void set_road_distances(const std::map<std::string, json::Node>& value) {
-            for(const auto& [data, value] : value) {
-                int tmp = value.AsInt();
-                road_distances.emplace(std::pair<int, std::string>(tmp, data));
+            // std::map<int, std::string> r_d;
+            for(const auto& [data, val] : value) {
+                int tmp = val.AsInt();
+                // std::cout << "Name is: " << name << ", " << data << " " << tmp << std::endl;
+                // r_d[tmp] = data;
+                road_distances.push_back(std::pair<int, std::string>(tmp, data));
+                // std::cout << r_d[tmp] << std::endl;
             }
+            // std::cout << value.size() << std::endl;
+            // for(const auto& [_, _s] : r_d) {
+                // std::cout << _ << " " << _s << std::endl;
+            // }
         }
         
         void clear() {
@@ -229,6 +237,9 @@ public:
     void AddToCt(const Base& base) {
         if(base.type == "Stop") {
             ct.AddStop(base.name, base.latitude, base.longitude, base.road_distances);
+            //for(const auto& [_, _s] : base.road_distances) {
+              //  std::cout << _ << " " << _s << std::endl;
+            //}
         }
         else if(base.type == "Bus") {
            ct.AddBus(base.name, base.round, base.stops);
@@ -349,8 +360,8 @@ public:
                 }
                 else
                 {
-                    std::cout << "        \"error_message\": \"not found\"," << std::endl;
-                    std::cout << "        \"request_id\": " << stat.id << std::endl;
+                    std::cout << "        \"request_id\": " << stat.id << "," << std::endl;
+                    std::cout << "        \"error_message\": \"not found\"" << std::endl;
                 }
                 ////////////////////////////////////////////////////
                 
@@ -371,8 +382,8 @@ public:
                     std::cout << "        \"unique_stop_count\": " << info.unique_stops << std::endl;
                 }
                 else {
-                    std::cout << "        \"error_message\": \"not found\"," << std::endl;
-                    std::cout << "        \"request_id\": " << stat.id << std::endl;
+                    std::cout << "        \"request_id\": " << stat.id << "," << std::endl;
+                    std::cout << "        \"error_message\": \"not found\"" << std::endl;
                 }
                 
                 if(stat_d[stat_d.size() - 1] == stat)
