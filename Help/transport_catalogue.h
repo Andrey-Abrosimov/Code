@@ -48,7 +48,7 @@ void SortByName(std::deque<std::string>& container);
 
 class Catalogue {
 public:
-    void AddBus (const std::string& name, bool type_of_move, const std::vector<std::string>& stops)
+    void AddBus (const std::string& name, const bool& type_of_move, const std::vector<std::string> stops)
     {
         buses_m.emplace(std::pair<std::string, Bus>(name, {name, type_of_move, stops}));
         
@@ -68,7 +68,7 @@ public:
         }
     }
     
-    void AddStop (const std::string& name, double x_cord, double y_cord, const std::map<int, std::string>& distance = {})
+    void AddStop (const std::string& name, const double& x_cord, const double& y_cord, const std::vector<std::pair<int, std::string>>& distance = {})
     {
         stops_m.emplace(std::pair<std::string, Stop>(name, {name, {x_cord, y_cord}}));
         
@@ -82,7 +82,11 @@ public:
     
     void AddDistanceBetweenStops (const int& lenght, const std::string& name, const std::string& from_stop_name)
     {
+        //dist_btw_stops.emplace(std::pair<std::string, std::deque<std::pair<double, std::string>>>(from_stop_name, ));
+        //dist_btw_stops[name].push_back({lenght, from_stop_name});
         dist_btw_stops[from_stop_name].push_back({lenght, name});
+        // std::cout << "Added " << from_stop_name << " - " << name << ": " << lenght << std::endl;
+        //dist_btw_stops.emplace(std::pair<std::string, std::deque<std::pair<double, std::string>>>(name, ));
     }
     
     int GetDistanceBetweenStops (const std::string& from, const std::string& to)
@@ -90,7 +94,7 @@ public:
         for(const auto& i : dist_btw_stops[from])
         {
             if(i.second == to) return i.first;
-        }
+        }A
         for(const auto& i : dist_btw_stops[to])
         {
             if(i.second == from) return i.first;
@@ -110,6 +114,7 @@ public:
             std::unordered_set<std::string_view> uniq_stops;
 
             for (const auto& stop : this_bus.stops) {
+                //uniq_stops.insert(FindStop(stop).name);
                 uniq_stops.insert(stops_m[stop].name);
             }
             ////////////////////////////////////////////////
@@ -143,9 +148,10 @@ public:
             {
                 if(is_frst) {is_frst = false; prev_stop = it; continue;}
                 real_rout_len += GetDistanceBetweenStops(prev_stop, it);
+                //std::cout << "From: " << prev_stop << " - to: " << it << " ,  is: " << GetDistanceBetweenStops(prev_stop, it) << std::endl;
                 prev_stop = it;
             }
-
+            
             if (!this_bus.is_round) {
                 is_frst = true;
                 prev_stop.clear();
@@ -153,6 +159,7 @@ public:
                 {
                     if(is_frst) {is_frst = false; prev_stop = *it; continue;}
                     real_rout_len += GetDistanceBetweenStops(prev_stop, *it);
+                    //std::cout << "From: " << prev_stop << " to: " << *it << std::endl;
                     prev_stop = *it;
                 }
             }
