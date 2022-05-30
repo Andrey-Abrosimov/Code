@@ -1,166 +1,172 @@
-#pragma once
+#include "svg.h"
 
-#define _USE_MATH_DEFINES
-
-#include <cstdint>
-#include <iostream>
-#include <memory>
-#include <string>
-#include <vector>
-#include <optional>
-#include <variant>
+#include <iomanip>
+#include <algorithm>
 #include <cmath>
 
 namespace svg {
+
     using namespace std::literals;
     
-    struct Point {
-        Point() = default;
-        Point(double x, double y)
-            : x(x)
-            , y(y) {
+    void Object::Render(const RenderContext& context) const {
+        //context.RenderIndent();
+
+        // Делегируем вывод тега своим подклассам
+        RenderObject(context);
+
+        context.out << "\n"sv;
+    }
+
+    // ---------- Circle ------------------
+
+    Circle& Circle::SetCenter(Point center) {
+        center_ = center;
+        return *this;
+    }
+
+    Circle& Circle::SetRadius(double radius) {
+        radius_ = radius;
+        return *this;
+    }
+
+    void Circle::RenderObject(const RenderContext& context) const {
+        std::ostream& out = context.out;
+        out << "  <circle cx=\""sv << center_.x << "\" cy=\""sv << center_.y << "\" "sv;
+        out << "r=\""sv << radius_ << "\" fill=\"white" << "\""sv;
+        out << "/>"sv;
+    }
+
+
+    // ---------- Polyline ------------------
+
+    Polyline& Polyline::AddPoint(Point point) {
+        points_.emplace_back(point);
+        return *this;
+    }
+    
+    Polyline& Polyline::SetFill(const std::string& data) {
+        fill = data;
+        return *this;
+    }
+    
+    Polyline& Polyline::SetStroke(const std::string& data) {
+        stroke = data;
+        return *this;
+    }
+    
+    Polyline& Polyline::SetWidth(double data) {
+        width = data;
+        return *this;
+    }
+    
+    Polyline& Polyline::SetCap(const std::string& data) {
+        cap = data;
+        return *this;
+    }
+    
+    Polyline& Polyline::SetJoin(const std::string& data) {
+        join = data;
+        return *this;
+    }
+
+    void Polyline::RenderObject(const RenderContext& context) const {
+        std::ostream& out = context.out;
+        out << "  <polyline points=\""sv;
+        for (size_t i = 0; i < points_.size(); ++i) {
+            out << points_[i].x << ","sv << points_[i].y;
+            if (i != points_.size() - 1) {
+                out << " "sv;
+            }
         }
-        double x = 0;
-        double y = 0;
-    };
+        out << "\""sv;
+        out << " fill=\"" << fill << "\"" << " stroke=\"" << stroke << "\"" << " stroke-width=\"" << width << "\"" << " stroke-linecap=\"" << cap << "\"" << " stroke-linejoin=\"" << join << "\"";
+        out << "/>"sv;
+    }
+
+    // ---------- Text ------------------
+    Text& Text::SetFill(const std::string& data) {
+        fill = data;
+        return *this;
+    }
     
-    struct RenderContext {
-        RenderContext(std::ostream& out)
-            : out(out) {
+    Text& Text::SetStroke(const std::string& data) {
+        stroke = data;
+        return *this;
+    }
+    
+    Text& Text::SetWidth(double data) {
+        width = data;
+        return *this;
+    }
+    
+    Text& Text::SetCap(const std::string& data) {
+        cap = data;
+        return *this;
+    }
+    
+    Text& Text::SetJoin(const std::string& data) {
+        join = data;
+        return *this;
+    }
+    
+    Text& Text::SetPosition(Point pos) {
+        pos_ = pos;
+        return *this;
+    }
+
+    Text& Text::SetOffset(Point offset) {
+        offset_ = offset;
+        return *this;
+    }
+
+    Text& Text::SetFontSize(uint32_t size) {
+        size_ = size;
+        return *this;
+    }
+    
+    Text& Text::SetFontFamily(std::string font_family) {
+        font_family_ = font_family;
+        return *this;
+    }
+    
+    Text& Text::SetFontWeight(std::string font_weight) {
+        font_weight_ = font_weight;
+        return *this;
+    }
+    
+    Text& Text::SetData(std::string data) {
+        data_ = data;
+        return *this;
+    }
+    
+    void Text::RenderObject(const RenderContext& context) const {        
+        std::ostream& out = context.out;
+        out << "  <text"sv;
+        out << " fill=\"" << fill << "\"";
+        if(width != 0.0 && !cap.empty()) {
+            out << " stroke=\"" << stroke << "\"" << " stroke-width=\"" << width << "\"" << " stroke-linecap=\"" << cap << "\"" << " stroke-linejoin=\"" << join << "\"";
+        }
+        
+        out << " x=\""sv << pos_.x << "\" y=\""sv << pos_.y << "\" "sv;
+        out << "dx=\""sv << offset_.x << "\" dy=\""sv << offset_.y << "\" "sv;
+        out << "font-size=\""sv << size_ << "\" "sv;
+        if (!font_family_.empty()) {
+            out << "font-family=\""sv << font_family_ << "\""sv;
+        }
+        if (!font_weight_.empty()) {
+            out << " font-weight=\""sv << font_weight_ << "\""sv;
         }
 
-        RenderContext(std::ostream& out, int indent_step, int indent = 0)
-            : out(out)
-            , indent_step(indent_step)
-            , indent(indent) {
+        out << ">"sv << data_ << "</text>"sv;
+    }
+
+    // ---------- Document ------------------
+    void Document::Render(std::ostream& out) const {
+        out << "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n"sv ;
+        out << "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">\n"sv ;
+        for (size_t i = 0; i < objects_.size(); ++i) {
+            objects_[i]->Render({ out, 2, 2 });
         }
-
-        RenderContext Indented() const;
-        void RenderIndent() const;
-
-        std::ostream& out;
-        int indent_step = 0;
-        int indent = 0;
-    };
-    
-    class Object {
-    public:
-        void Render(const RenderContext& context) const;
-
-        virtual ~Object() = default;
-
-    private:
-        virtual void RenderObject(const RenderContext& context) const = 0;
-    };
-    
-    class Circle final : public Object {
-    public:
-        Circle& SetCenter(Point center);
-        Circle& SetRadius(double radius);
-
-    private:
-        void RenderObject(const RenderContext& context) const override;
-
-        Point center_ = { 0.0, 0.0 };
-        double radius_ = 1.0;
-    };
-    
-    class Polyline final : public Object {
-    public:        
-        Polyline& AddPoint(Point point);
-        
-        Polyline& SetFill(const std::string& data);
-    
-        Polyline& SetStroke(const std::string& data);
-    
-        Polyline& SetWidth(double data);
-    
-        Polyline& SetCap(const std::string& data);
-    
-        Polyline& SetJoin(const std::string& data);
-
-        
-    private:
-        void RenderObject(const RenderContext& context) const override;
-
-        std::vector<Point> points_;
-        std::string fill = "none";
-        std::string stroke = "none";
-        double width = 0.0;
-        std::string cap = "round";
-        std::string join = "round";
-    };
-    
-    class Text final : public Object {
-    public:     
-        Text& AddPoint(Point point);
-        
-        Text& SetFill(const std::string& data);
-    
-        Text& SetStroke(const std::string& data);
-    
-        Text& SetWidth(double data);
-    
-        Text& SetCap(const std::string& data);
-    
-        Text& SetJoin(const std::string& data);
-        
-        Text& SetPosition(Point pos);
-        
-        Text& SetOffset(Point offset);
-        
-        Text& SetFontSize(uint32_t size);
-        
-        Text& SetFontFamily(std::string font_family);
-        
-        Text& SetFontWeight(std::string font_weight);
-        
-        Text& SetData(std::string data);
-    private:
-        void RenderObject(const RenderContext& context) const override;
-
-        std::string fill = "none";
-        std::string stroke = "none";
-        double width = 0.0;
-        std::string cap;
-        std::string join = "round";
-        
-        Point pos_ = { 0.0, 0.0 };
-        Point offset_ = { 0.0, 0.0 };
-        uint32_t size_ = 1;
-        std::string font_family_;
-        std::string font_weight_;
-        std::string data_ = "";
-    };
-
-    class ObjectContainer {
-    public:        
-        template <typename T>
-        void Add(T obj) {
-            objects_.emplace_back(std::make_unique<T>(std::move(obj)));
-        }
-
-        virtual ~ObjectContainer() = default;
-    protected:        
-        virtual void AddPtr(std::unique_ptr<Object>&& obj) = 0;
-        std::vector<std::unique_ptr<Object>> objects_;
-    };
-
-    class Document : public ObjectContainer {
-    public:
-        Document() = default;
-
-        void AddPtr(std::unique_ptr<Object>&& obj) override {
-            objects_.emplace_back(std::move(obj));
-        }        
-
-        void Render(std::ostream& out) const;
-    };
-    
-    class Drawable {
-    public:
-        virtual void Draw(ObjectContainer& container) const = 0;
-
-        virtual ~Drawable() = default;
-    };
-}
+        out << "</svg>"sv;
+    }
+}  // namespace svg
